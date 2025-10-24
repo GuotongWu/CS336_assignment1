@@ -1,0 +1,6 @@
+.pytest_cache
+.venv
+CPyCppyy-master
+__pycache__
+*.pyc
+data

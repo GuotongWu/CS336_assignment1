@@ -1,0 +1,46 @@
+============================= test session starts ==============================
+platform linux -- Python 3.13.5, pytest-8.3.5, pluggy-1.5.0 -- /home/wgt/projects/assignment1-basics/.venv/bin/python3
+cachedir: .pytest_cache
+rootdir: /home/wgt/projects/assignment1-basics
+configfile: pyproject.toml
+plugins: jaxtyping-0.3.1
+collecting ... collected 3 items
+
+tests/test_train_bpe.py::test_train_bpe_speed <- ../../CS366/assignment1-basics/test/test_train_bpe.py 🚀 Start to read files and chunk ...
+✅ Read finished! Cost time: 0.0020 seconds
+📊 Start to pre_tokenize ...
+✅ Pre_tokenization finished! Cost time:  0.2017 seconds
+📊 Start to count word and initialize ...
+✅ Word count and initialization finished! Cost time:  0.0076 seconds
+🔄 Start to merge ...
+✅ Merge finished! Cost time:  0.1230 seconds
+✅ All tasks have been finised! Cost time:  0.3351 seconds
+PASSED
+tests/test_train_bpe.py::test_train_bpe <- ../../CS366/assignment1-basics/test/test_train_bpe.py 🚀 Start to read files and chunk ...
+✅ Read finished! Cost time: 0.0021 seconds
+📊 Start to pre_tokenize ...
+✅ Pre_tokenization finished! Cost time:  0.1150 seconds
+📊 Start to count word and initialize ...
+✅ Word count and initialization finished! Cost time:  0.0087 seconds
+🔄 Start to merge ...
+✅ Merge finished! Cost time:  0.0679 seconds
+✅ All tasks have been finised! Cost time:  0.1938 seconds
+PASSED
+tests/test_train_bpe.py::test_train_bpe_special_tokens <- ../../CS366/assignment1-basics/test/test_train_bpe.py 🚀 Start to read files and chunk ...
+✅ Read finished! Cost time: 0.0003 seconds
+📊 Start to pre_tokenize ...
+✅ Pre_tokenization finished! Cost time:  0.3780 seconds
+📊 Start to count word and initialize ...
+✅ Word count and initialization finished! Cost time:  0.0136 seconds
+🔄 Start to merge ...
+✅ Merge finished! Cost time:  0.1159 seconds
+✅ All tasks have been finised! Cost time:  0.5079 seconds
+PASSED
+
+=============================== warnings summary ===============================
+tests/test_train_bpe.py: 24 warnings
+  /home/wgt/projects/assignment1-basics/.venv/lib/python3.13/site-packages/multiprocess/popen_fork.py:67: DeprecationWarning: This process (pid=9901) is multi-threaded, use of fork() may lead to deadlocks in the child.
+    self.pid = os.fork()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+======================== 3 passed, 24 warnings in 1.07s ========================

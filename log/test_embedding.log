@@ -1,0 +1,16 @@
+============================= test session starts ==============================
+platform linux -- Python 3.13.5, pytest-8.3.5, pluggy-1.5.0
+rootdir: /home/wgt/projects/assignment1-basics
+configfile: pyproject.toml
+plugins: jaxtyping-0.3.1
+collected 48 items / 47 deselected / 1 selected
+
+tests/test_model.py::test_embedding PASSED
+
+=============================== warnings summary ===============================
+tests/adapters.py:309
+  /home/wgt/projects/assignment1-basics/tests/adapters.py:309: SyntaxWarning: invalid escape sequence '\T'
+    rope_theta (float): The RoPE $\Theta$ parameter.
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+================= 1 passed, 47 deselected, 1 warning in 0.08s ==================
