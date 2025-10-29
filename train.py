@@ -30,16 +30,26 @@ def init_wandb(args):
     wandb_key = os.getenv("WANDB_API_KEY")
     wandb.login(key=wandb_key)
 
+    run_name = None if os.getenv("WANDB_SWEEP_ID") else f"{args.dataset_name}_{args.max_lr}_{args.batch_size}"
     # Initialize a new run
     wandb.init(
         project="cs336-assign1", 
-        name=f"{args.dataset_name}_{args.max_lr}_{args.batch_size}")
+        config=vars(args),
+        name=run_name)
 
     wandb.define_metric("global_step")
     wandb.define_metric("train/*", step_metric="global_step")
     wandb.define_metric("eval/*", step_metric="global_step")
 
 def train_loop(args):
+    if wandb.run is not None:
+        merged = vars(args).copy()
+        merged.update(dict(wandb.config))
+        if "betas_0" in merged and "betas_1" in merged:
+            merged["betas"] = (merged.pop("betas_0"), merged.pop("betas_1"))
+        args = argparse.Namespace(**merged)
+        args.min_lr = args.max_lr * args.min_lr_ratio
+
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
     train_data = np.load(args.train_path, mmap_mode='r')
@@ -137,7 +147,7 @@ if __name__ == "__main__":
     parser.add_argument("--total_tokens_processed", type=int, default=327680000)
     parser.add_argument("--batch_size", type=int, default=128)
     parser.add_argument("--max_lr", type=float, default=3e-4)
-    parser.add_argument("--min_lr", type=float, default=0.0)
+    parser.add_argument("--min_lr_ratio", type=float, default=0.05)
     parser.add_argument("--weight_decay", type=float, default=0.01)
     parser.add_argument("--betas", nargs=2, type=float, default=(0.9, 0.98))
     parser.add_argument("--eps", type=float, default=1e-8)
