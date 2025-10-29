@@ -7,8 +7,13 @@ import numpy as np
 
 def cross_entropy(inputs: torch.Tensor, targets: torch.Tensor):
     batch = inputs.shape[0]
+    vocab = inputs.shape[-1]
+
+    inputs= inputs.reshape(-1, vocab)
+    targets = targets.reshape(-1).to(dtype=torch.long)
+
     inputs = inputs - torch.max(inputs, dim=1, keepdim=True).values
-    numerate = inputs[torch.arange(batch), targets]
+    numerate = inputs[torch.arange(inputs.shape[0]), targets]
     denominator = torch.log(torch.sum(torch.exp(inputs), dim=1))
     return torch.mean(denominator - numerate)
 
@@ -44,7 +49,12 @@ class AdamW(torch.optim.Optimizer):
 
         for group in self.param_groups:
             for p in group["params"]:
-                self.state[p] = dict(exp_avg=torch.zeros(p.shape), exp_avg_sq=torch.zeros(p.shape))  
+                state = {
+                    "exp_avg": torch.zeros_like(p, device=p.device),
+                    "exp_avg_sq": torch.zeros_like(p, device=p.device),
+                    "t": 1,
+                }
+                self.state[p] = state  
 
     def step(self, closure: Optional[Callable]=None):
         loss = None if closure is None else closure()
@@ -100,9 +110,9 @@ def gradient_clipping(parameters: Iterable[torch.nn.Parameter], max_l2_norm: flo
                 p.grad.mul_(coff)
 
 def data_loading(x: np.array, batch_size: int, context_length: int, device: torch.device | str):
-    start = np.random.choice(len(x) - context_length, batch_size, replace=False)
+    start = np.random.randint(0, len(x) - context_length, size=batch_size)
     indice = start[:, np.newaxis] + np.arange(context_length)
-    return torch.Tensor(x[indice], device=device), torch.Tensor(x[indice+1], device=device)
+    return torch.from_numpy(x[indice]).to(device), torch.from_numpy(x[indice+1]).to(device)
 
 def save_checkpoint(model: torch.nn.Module, optimizer: torch.optim.Optimizer,
                     iteration: int,

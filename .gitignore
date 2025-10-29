@@ -6,3 +6,5 @@ __pycache__
 data
 checkpoint
 .env
+wandb
+.vscode

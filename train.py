@@ -45,8 +45,7 @@ def train_loop(args):
     train_data = np.load(args.train_path, mmap_mode='r')
     valid_data = np.load(args.valid_path, mmap_mode='r')
 
-    num_train_batches = math.ceil(len(train_data) / args.batch_size)
-    total_train_iters = args.num_epochs * num_train_batches
+    total_train_iters = args.total_tokens_processed // args.batch_size // args.context_length
     pbar = tqdm(total=total_train_iters, desc="train")
     warmup_iters = int(total_train_iters * args.warmup_ratio)
     cosine_cycle_iters = total_train_iters - warmup_iters
@@ -67,66 +66,67 @@ def train_loop(args):
                       eps=args.eps)
     
     min_valid_loss = math.inf
-    global_step = 0
+    for global_step in range(1, total_train_iters+1):
+        model.train()
+        inputs, targets = data_loading(
+            train_data, args.batch_size,
+            args.context_length, device)
+        optimizer.zero_grad()
+        logits = model(inputs)
+        loss = cross_entropy(logits, targets)
+        loss.backward()
+        gradient_clipping(model.parameters(), max_l2_norm=args.max_l2_norm)
+        
+        new_lr = lr_cosine_sheduling(
+            global_step, args.max_lr, args.min_lr, 
+            warmup_iters, cosine_cycle_iters)
+        for group in optimizer.param_groups:
+            group["lr"] = new_lr
+        optimizer.step()
+        
+        if global_step % args.valid_interval_iters == 0:
+            model.eval()
+            with torch.no_grad():
+                valid_loss_list = []
+                valid_pbar = tqdm(total=total_train_iters // 200, desc="valid")
+                for _ in range(total_train_iters // 200):
+                    valid_inputs, valid_targets = data_loading(
+                        valid_data, args.batch_size,
+                        args.context_length, device
+                    )
+                    valid_loss = cross_entropy(model(valid_inputs), valid_targets).item()
+                    valid_loss_list.append(valid_loss)
+                    valid_pbar.update(1)
+                    valid_pbar.set_postfix(
+                        loss=f"{valid_loss:.4f}",
+                    )
+                
+                mean_valid_loss = np.mean(valid_loss_list)
+                wandb.log({
+                    "eval/loss": mean_valid_loss
+                }, step=global_step)
+                if mean_valid_loss < min_valid_loss:
+                    min_valid_loss = mean_valid_loss
+                    os.makedirs(os.path.join(args.checkpoint_path, args.dataset_name), exist_ok=True)
+                    saved_path = os.path.join(
+                        args.checkpoint_path, 
+                        args.dataset_name, 
+                        f"checkpoint_batch{args.batch_size}_maxlr{args.max_lr}_iter{global_step}_loss{mean_valid_loss:.4f}.pth")
+                    save_checkpoint(model, optimizer, global_step,
+                                    out=saved_path)   
+                    print(f"iter={global_step}, loss={mean_valid_loss:.4f}, checkpoint saved!")
 
-    for _ in range(args.num_epochs):
-        for train_iter in range(num_train_batches):
-            global_step += 1
-
-            model.train()
-            inputs, targets = data_loading(
-                train_data[train_iter*args.batch_size: (train_iter+1)*args.batch_size],
-                args.batch_size, args.context_length, device)
-            optimizer.zero_grad()
-            logits = model(inputs)
-            loss = cross_entropy(logits, targets)
-            loss.backward()
-            gradient_clipping(model.parameters(), max_l2_norm=args.max_l2_norm)
-            
-            new_lr = lr_cosine_sheduling(
-                global_step, args.max_lr, args.min_lr, 
-                warmup_iters, cosine_cycle_iters)
-            for group in optimizer.param_groups:
-                group["lr"] = new_lr
-            optimizer.step()
-            
-            if global_step % args.valid_interval_iters == 0:
-                model.eval()
-                with torch.no_grad():
-                    valid_loss_list = []
-                    
-                    for valid_iter in range(math.ceil(len(valid_data) / args.batch_size)):
-                        valid_inputs, valid_targets = data_loading(
-                            valid_data[valid_iter*args.batch_size: (valid_iter+1)*args.batch_size],
-                            args.batch_size, args.context_length, device
-                        )
-                        valid_loss_list.append(cross_entropy(model(valid_inputs), valid_targets).item())
-                    
-                    mean_valid_loss = np.mean(valid_loss_list)
-                    wandb.log({
-                        "eval/loss": mean_valid_loss
-                    }, step=global_step)
-                    if mean_valid_loss < min_valid_loss:
-                        min_valid_loss = mean_valid_loss
-                        saved_path = os.path.join(
-                            args.checkpoint_path, 
-                            args.dataset_name, 
-                            f"checkpoint_batch{args.batch_size}_maxlr{args.max_lr}_iter{global_step}_loss{mean_valid_loss:.4f}.pth")
-                        save_checkpoint(model, optimizer, 
-                                        out=saved_path)   
-                        print(f"iter = {global_step}, loss = {mean_valid_loss:.4f}, checkpoint saved!")
-
-            pbar.update(1)
-            loss_item = loss.item()
-            pbar.set_postfix(
-                loss=f"{loss_item:.4f}",
-                lr=f"{new_lr:.6f}"
-            )
-            wandb.log({
-                "global_step": global_step,
-                "train/loss": loss_item,
-                "train/lr": new_lr
-            }, step=global_step)
+        loss_item = loss.item()
+        pbar.set_postfix(
+            loss=f"{loss_item:.4f}",
+            lr=f"{new_lr:.6f}"
+        )
+        pbar.update(1)
+        wandb.log({
+            "global_step": global_step,
+            "train/loss": loss_item,
+            "train/lr": new_lr
+        }, step=global_step)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -136,8 +136,8 @@ if __name__ == "__main__":
     parser.add_argument("--dataset_name", type=str, default="TinyStoriesV2")
 
     parser.add_argument("--seed", type=int, default=36)
-    parser.add_argument("--num_epochs", type=int, default=10)
-    parser.add_argument("--batch_size", type=int, default=32)
+    parser.add_argument("--total_tokens_processed", type=int, default=327680000)
+    parser.add_argument("--batch_size", type=int, default=128)
     parser.add_argument("--max_lr", type=float, default=3e-4)
     parser.add_argument("--min_lr", type=float, default=0.0)
     parser.add_argument("--weight_decay", type=float, default=0.01)
@@ -153,7 +153,7 @@ if __name__ == "__main__":
     parser.add_argument("--rope_theta", type=float, default=10000.0)
     parser.add_argument("--num_layers", type=int, default=4)
     parser.add_argument("--num_heads", type=int, default=4)
-    parser.add_argument("--valid_interval_iters", type=int, default=10000)
+    parser.add_argument("--valid_interval_iters", type=int, default=50)
 
     args = parser.parse_args()
 

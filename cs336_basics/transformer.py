@@ -89,7 +89,7 @@ class RoPE(nn.Module):
     def forward(self, x: torch.Tensor, token_positions: torch.Tensor=None):
         if token_positions is None:
             token_positions = torch.arange(x.shape[2], device=self.device)
-            token_positions = token_positions.unsqueeze(0).expand(x.shape[0],-1)
+            token_positions = token_positions.unsqueeze(0).expand(x.shape[1],-1)
 
         cos_select = self.cos_mat[token_positions]
         sin_select = self.sin_mat[token_positions]
@@ -191,7 +191,7 @@ class Transformer(nn.Module):
         self.ln = Linear(d_model, vocab_size, device, dtype)
 
     def forward(self, x: torch.Tensor):
-        x = self.embed(x)
+        x = self.embed(x.to(dtype=torch.long))
         for sub_net in self.transformer_block_list:
             x = sub_net(x)
         return self.ln(self.norm(x))

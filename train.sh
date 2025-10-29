@@ -1,0 +1,1 @@
+python train.py --train_path /root/autodl-tmp/data/TinyStoriesV2-GPT4-train-encoding.npy --valid_path /root/autodl-tmp/data/TinyStoriesV2-GPT4-valid-encoding.npy
