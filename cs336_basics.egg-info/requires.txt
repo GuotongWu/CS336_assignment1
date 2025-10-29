@@ -16,6 +16,7 @@ cppyy>=3.1.2
 cpycppyy>=1.13.0
 pybind11>=3.0.0
 multiprocess
+dotenv>=0.9.9
 
 [:sys_platform != "darwin"]
 torch~=2.6.0

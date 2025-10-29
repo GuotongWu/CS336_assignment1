@@ -5,6 +5,7 @@ cs336_basics/__init__.py
 cs336_basics/bpe.py
 cs336_basics/pretokenization_example.py
 cs336_basics/transformer.py
+cs336_basics/utils.py
 cs336_basics.egg-info/PKG-INFO
 cs336_basics.egg-info/SOURCES.txt
 cs336_basics.egg-info/dependency_links.txt

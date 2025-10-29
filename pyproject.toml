@@ -15,7 +15,7 @@ dependencies = [
     "submitit>=1.5.2", # job submission for SLURM
     "tiktoken>=0.9.0",
     "torch~=2.6.0; sys_platform != 'darwin'",
-    "torch~=2.2.2; sys_platform == 'darwin'",  # 这一行是给 Intel Mac 的，保留即可
+    "torch~=2.2.2; sys_platform == 'darwin'", # 这一行是给 Intel Mac 的，保留即可
     "tqdm>=4.67.1",
     "wandb>=0.19.7",
     "ipykernel>=6.29.5",
@@ -24,7 +24,8 @@ dependencies = [
     "cppyy>=3.1.2", # C++ bindings for Python
     "cpycppyy>=1.13.0",
     "pybind11>=3.0.0",
-    "multiprocess"
+    "multiprocess",
+    "dotenv>=0.9.9",
 ]
 
 

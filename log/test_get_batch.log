@@ -1,0 +1,10 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-8.3.5, pluggy-1.5.0
+rootdir: /home/wgt/code/CS336/assignment1-basics
+configfile: pyproject.toml
+plugins: jaxtyping-0.3.1
+collected 48 items / 47 deselected / 1 selected
+
+tests/test_data.py::test_get_batch PASSED
+
+======================= 1 passed, 47 deselected in 0.31s =======================

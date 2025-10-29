@@ -1,6 +1,9 @@
 from typing import Callable, Iterable, Optional
+import typing
 import torch
 import math
+import os
+import numpy as np
 
 def cross_entropy(inputs: torch.Tensor, targets: torch.Tensor):
     batch = inputs.shape[0]
@@ -39,7 +42,6 @@ class AdamW(torch.optim.Optimizer):
         defaults = dict(lr=lr, betas=betas, eps=eps, weight_decay=weight_decay)
         super().__init__(params, defaults)
 
-        self.state["t"] = 1
         for group in self.param_groups:
             for p in group["params"]:
                 self.state[p] = dict(exp_avg=torch.zeros(p.shape), exp_avg_sq=torch.zeros(p.shape))  
@@ -50,21 +52,22 @@ class AdamW(torch.optim.Optimizer):
         for group in self.param_groups:
             beta1, beta2 = group["betas"]
             lr = group["lr"]
-            t = self.state["t"]
-            new_lr = lr * math.sqrt(1 - math.pow(beta2, t)) / (1 - math.pow(beta1, t))
 
             for p in group["params"]:
                 if p.grad is None:
                     continue 
 
                 state = self.state[p]
+                t = state.get("t", 1)
+                new_lr = lr * math.sqrt(1 - math.pow(beta2, t)) / (1 - math.pow(beta1, t))
+                
+                self.state[p]["t"] = t + 1
                 self.state[p]["exp_avg"] = exp_avg = beta1 * state["exp_avg"] + (1 - beta1) * p.grad
                 self.state[p]["exp_avg_sq"] = exp_avg_sq = beta2 * state["exp_avg_sq"] + (1 - beta2) * (p.grad ** 2)
                 
                 p.data -= new_lr * exp_avg / torch.sqrt(exp_avg_sq + group["eps"])
                 p.data -=  lr * group["weight_decay"] * p.data
-            
-        self.state["t"] += 1
+
         return loss
 
 def lr_cosine_sheduling(
@@ -95,6 +98,32 @@ def gradient_clipping(parameters: Iterable[torch.nn.Parameter], max_l2_norm: flo
         for p in parameters:
             if p.grad is not None:
                 p.grad.mul_(coff)
+
+def data_loading(x: np.array, batch_size: int, context_length: int, device: torch.device | str):
+    start = np.random.choice(len(x) - context_length, batch_size, replace=False)
+    indice = start[:, np.newaxis] + np.arange(context_length)
+    return torch.Tensor(x[indice], device=device), torch.Tensor(x[indice+1], device=device)
+
+def save_checkpoint(model: torch.nn.Module, optimizer: torch.optim.Optimizer,
+                    iteration: int,
+                    out: str | os.PathLike | typing.BinaryIO | typing.IO[bytes]):
+    model_state_dict = {k: v.cpu() for k, v in model.state_dict().items()}
+    checkpoint = {
+        "model_state_dict": model_state_dict,
+        "optimizer_state_dict": optimizer.state_dict(),
+        "iteration": iteration
+    }
+    torch.save(checkpoint, out)
+
+def load_checkpoint(src: str | os.PathLike | typing.BinaryIO | typing.IO[bytes],
+                     model: torch.nn.Module, opitmizer: torch.optim.Optimizer):
+    checkpoint = torch.load(src, map_location='cpu')
+    model_state_dict = checkpoint["model_state_dict"]
+    opitmizer_state_dict = checkpoint["optimizer_state_dict"]
+    iteration = checkpoint["iteration"]
+    model.load_state_dict(model_state_dict)
+    opitmizer.load_state_dict(opitmizer_state_dict)
+    return iteration
 
 if __name__ == "__main__":
     # inputs = torch.rand(32, 50)
