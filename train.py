@@ -107,13 +107,11 @@ def train_loop(args):
                 }, step=global_step)
                 if mean_valid_loss < min_valid_loss:
                     min_valid_loss = mean_valid_loss
-                    os.makedirs(os.path.join(args.checkpoint_path, args.dataset_name), exist_ok=True)
+                    os.makedirs(args.checkpoint_path, exist_ok=True)
                     saved_path = os.path.join(
                         args.checkpoint_path, 
-                        args.dataset_name, 
-                        f"checkpoint_batch{args.batch_size}_maxlr{args.max_lr}_iter{global_step}_loss{mean_valid_loss:.4f}.pth")
-                    save_checkpoint(model, optimizer, global_step,
-                                    out=saved_path)   
+                        f"{args.dataset_name}_maxlr{args.max_lr}_batch{args.batch_size}.pth")
+                    save_checkpoint(model, optimizer, global_step, out=saved_path)   
                     print(f"iter={global_step}, loss={mean_valid_loss:.4f}, checkpoint saved!")
 
         loss_item = loss.item()
