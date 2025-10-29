@@ -33,7 +33,7 @@ def init_wandb(args):
     # Initialize a new run
     wandb.init(
         project="cs336-assign1", 
-        name=args.dataset_name)
+        name=f"{args.dataset_name}_{args.max_lr}_{args.batch_size}")
 
     wandb.define_metric("global_step")
     wandb.define_metric("train/*", step_metric="global_step")
@@ -137,7 +137,7 @@ if __name__ == "__main__":
 
     parser.add_argument("--seed", type=int, default=36)
     parser.add_argument("--num_epochs", type=int, default=10)
-    parser.add_argument("--batch_size", type=int, default=16)
+    parser.add_argument("--batch_size", type=int, default=32)
     parser.add_argument("--max_lr", type=float, default=3e-4)
     parser.add_argument("--min_lr", type=float, default=0.0)
     parser.add_argument("--weight_decay", type=float, default=0.01)
