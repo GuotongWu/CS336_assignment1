@@ -120,7 +120,7 @@ def train_loop(args):
                     os.makedirs(args.checkpoint_path, exist_ok=True)
                     saved_path = os.path.join(
                         args.checkpoint_path, 
-                        f"{args.dataset_name}_maxlr{args.max_lr}_batch{args.batch_size}.pth")
+                        f"{args.dataset_name}_maxlr{args.max_lr:.6f}_batch{args.batch_size}.pth")
                     save_checkpoint(model, optimizer, global_step, out=saved_path)   
                     print(f"iter={global_step}, loss={mean_valid_loss:.4f}, checkpoint saved!")
 
