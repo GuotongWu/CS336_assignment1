@@ -26,6 +26,8 @@ Requires-Dist: cpycppyy>=1.13.0
 Requires-Dist: pybind11>=3.0.0
 Requires-Dist: multiprocess
 Requires-Dist: dotenv>=0.9.9
+Requires-Dist: fastapi>=0.120.3
+Requires-Dist: uvicorn[standard]>=0.38.0
 Dynamic: license-file
 
 # CS336 Spring 2025 Assignment 1: Basics

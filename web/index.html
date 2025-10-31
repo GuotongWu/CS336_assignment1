@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CS336 Chatbox</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      font-family: system-ui, sans-serif;
+    }
+    body {
+      margin: 0;
+      background: #0f172a;
+      color: #f8fafc;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 16px;
+    }
+    .chat-container {
+      width: min(720px, 100%);
+      background: #1e293b;
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 20px 40px rgba(15, 23, 42, 0.4);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    h1 {
+      margin: 0;
+      font-size: 1.5rem;
+      text-align: center;
+      letter-spacing: 0.04em;
+    }
+    .messages {
+      flex: 1 1 auto;
+      overflow-y: auto;
+      background: #0f172a;
+      border-radius: 12px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      max-height: 60vh;
+    }
+    .message {
+      display: grid;
+      grid-template-columns: 72px 1fr;
+      gap: 12px;
+      align-items: flex-start;
+    }
+    .message.assistant {
+      background: rgba(59, 130, 246, 0.12);
+      border-radius: 12px;
+      padding: 12px;
+    }
+    .message.user {
+      background: rgba(34, 197, 94, 0.12);
+      border-radius: 12px;
+      padding: 12px;
+    }
+    .role {
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      opacity: 0.8;
+    }
+    .text {
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-size: 0.95rem;
+      line-height: 1.5;
+    }
+    form {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .settings {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 12px;
+    }
+    label {
+      display: flex;
+      flex-direction: column;
+      font-size: 0.85rem;
+      gap: 4px;
+      opacity: 0.9;
+    }
+    input[type="number"],
+    input[type="text"] {
+      border: none;
+      border-radius: 999px;
+      padding: 10px 16px;
+      font-size: 1rem;
+      background: #0f172a;
+      color: #f8fafc;
+      box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.4);
+    }
+    input[type="number"]:focus,
+    input[type="text"]:focus {
+      outline: 2px solid rgba(59, 130, 246, 0.6);
+      outline-offset: 2px;
+    }
+    .input-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+    }
+    button {
+      border: none;
+      border-radius: 999px;
+      padding: 10px 24px;
+      font-size: 1rem;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      cursor: pointer;
+      background: #38bdf8;
+      color: #0f172a;
+      transition: background 0.2s ease;
+    }
+    button:hover {
+      background: #0ea5e9;
+    }
+    button:disabled {
+      cursor: not-allowed;
+      background: rgba(148, 163, 184, 0.3);
+      color: rgba(148, 163, 184, 0.7);
+    }
+  </style>
+</head>
+<body>
+  <div class="chat-container">
+    <h1>CS336 Chatbox</h1>
+    <div id="messages" class="messages"></div>
+    <form id="chat-form">
+      <div class="settings">
+        <label>
+          Max tokens
+          <input id="max-tokens" type="number" min="1" max="512" value="256">
+        </label>
+        <label>
+          Temperature
+          <input id="temperature" type="number" step="0.05" min="0.05" max="5" value="0.7">
+        </label>
+        <label>
+          Top-p
+          <input id="top-p" type="number" step="0.05" min="0.05" max="1" value="0.9">
+        </label>
+      </div>
+      <div class="input-row">
+        <input id="user-input" type="text" placeholder="Send a message" autocomplete="off">
+        <button id="send-button" type="submit">Send</button>
+      </div>
+    </form>
+  </div>
+  <script>
+    const formEl = document.getElementById('chat-form');
+    const inputEl = document.getElementById('user-input');
+    const messagesEl = document.getElementById('messages');
+  const maxTokensEl = document.getElementById('max-tokens');
+    const temperatureEl = document.getElementById('temperature');
+    const topPEl = document.getElementById('top-p');
+    const sendButton = document.getElementById('send-button');
+
+    function appendMessage(role, text) {
+      const wrapper = document.createElement('div');
+      wrapper.className = `message ${role}`;
+
+      const roleEl = document.createElement('div');
+      roleEl.className = 'role';
+      roleEl.textContent = role === 'user' ? 'You' : 'Model';
+
+      const textEl = document.createElement('div');
+      textEl.className = 'text';
+      textEl.textContent = text;
+
+      wrapper.appendChild(roleEl);
+      wrapper.appendChild(textEl);
+      messagesEl.appendChild(wrapper);
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+      return wrapper;
+    }
+
+    async function sendMessage(event) {
+      event.preventDefault();
+      const rawInput = inputEl.value.trim();
+      if (!rawInput) {
+        return;
+      }
+
+  const maxTokens = Math.max(1, Math.min(parseInt(maxTokensEl.value || '256', 10), 512));
+      const temperature = Math.max(0.05, Math.min(parseFloat(temperatureEl.value || '0.7'), 5));
+      const topP = Math.max(0.05, Math.min(parseFloat(topPEl.value || '0.9'), 1));
+
+      appendMessage('user', rawInput);
+
+      inputEl.value = '';
+      inputEl.focus();
+      sendButton.disabled = true;
+
+      const placeholder = appendMessage('assistant', 'Thinking...');
+      const prompt = rawInput;
+
+      try {
+        const response = await fetch('/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            prompt,
+            max_tokens: maxTokens,
+            temperature,
+            top_p: topP,
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error(`Request failed with status ${response.status}`);
+        }
+
+        const data = await response.json();
+        const completion = typeof data.completion === 'string' ? data.completion.trim() : '';
+        const assistantText = completion || '[no response]';
+
+        const textEl = placeholder.querySelector('.text');
+        textEl.textContent = assistantText;
+      } catch (error) {
+        const textEl = placeholder.querySelector('.text');
+        textEl.textContent = `Error: ${error.message}`;
+      } finally {
+        sendButton.disabled = false;
+      }
+    }
+
+    formEl.addEventListener('submit', sendMessage);
+  </script>
+</body>
+</html>
